@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ระบบประเมินความเหมาะสมในการเป็นทหาร</title>
+  <meta name="description" content="ระบบประเมินความเหมาะสมในการเป็นทหาร">
+  <meta name="theme-color" content="#0b2545">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ระบบประเมินความเหมาะสมในการเป็นทหาร">
+  <meta property="og:description" content="ระบบประเมินความเหมาะสมในการเป็นทหาร">
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;           /* ไม่มี scrollbar ฝั่ง wrapper */
+      background: #0b2545;
+      font-family: "Sarabun", "Noto Sans Thai", system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    /* ---------- iframe เต็มจอ ---------- */
+    #app {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100vh;              /* fallback */
+      height: 100dvh;             /* กัน address bar มือถือบัง */
+      border: 0;
+      margin: 0;
+      padding: 0;
+      display: block;
+      background: #fff;
+    }
+
+    /* ---------- Loading screen ---------- */
+    #loader {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      padding: env(safe-area-inset-top) 24px env(safe-area-inset-bottom);
+      text-align: center;
+      color: #fff;
+      background: radial-gradient(circle at 50% 30%, #1d4e89 0%, #0b2545 70%);
+      opacity: 1;
+      transition: opacity .6s ease, visibility .6s ease;
+    }
+    #loader.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+
+    .spinner {
+      width: 54px; height: 54px;
+      border: 4px solid rgba(255,255,255,.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .title { font-size: clamp(18px, 5vw, 26px); font-weight: 700; line-height: 1.4; }
+    .sub   { font-size: 14px; opacity: .8; }
+
+    #fallback {
+      display: none;
+      margin-top: 6px;
+      padding: 10px 22px;
+      border-radius: 999px;
+      background: #fff;
+      color: #0b2545;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    #fallback.show { display: inline-block; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .spinner { animation-duration: 2.5s; }
+      #loader { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading screen -->
+  <div id="loader" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="title">ระบบประเมินความเหมาะสมในการเป็นทหาร</div>
+    <div class="sub">กำลังโหลดระบบ กรุณารอสักครู่...</div>
+    <a id="fallback" href="#" target="_top" rel="noopener">โหลดนานผิดปกติ? แตะเพื่อเปิดระบบโดยตรง</a>
+  </div>
+
+  <!-- Web App (ตั้ง src ผ่าน JS ด้านล่าง) -->
+  <iframe
+    id="app"
+    title="ระบบประเมินความเหมาะสมในการเป็นทหาร"
+    allow="fullscreen; clipboard-write; camera; microphone; geolocation"
+    allowfullscreen
+    referrerpolicy="no-referrer-when-downgrade"
+    scrolling="auto"
+    frameborder="0"></iframe>
+
+  <script>
+    (function () {
+      "use strict";
+
+      // URL จริงของ Google Apps Script Web App
+      var GAS_URL = "https://script.google.com/macros/s/AKfycbwOK3PaT1RuL_2tOsIXTXPvB5QsvRY05VqxsxPgvbVbjO4-WoU0nuX36qjzPBUaaX0g/exec";
+
+      var frame    = document.getElementById("app");
+      var loader   = document.getElementById("loader");
+      var fallback = document.getElementById("fallback");
+
+      // ส่งต่อ query string (เช่น ?page=admin&id=123) จากลิงก์ที่เปิด ไปยัง GAS
+      // และรองรับ parameter ที่ Line/Facebook อาจแนบมา (fbclid, openExternalBrowser ฯลฯ) โดยตัดทิ้ง
+      var BLOCKED = ["fbclid", "gclid", "openExternalBrowser", "igshid", "utm_source", "utm_medium", "utm_campaign"];
+      var params = new URLSearchParams(window.location.search);
+      BLOCKED.forEach(function (k) { params.delete(k); });
+      var qs = params.toString();
+      var target = GAS_URL + (qs ? (GAS_URL.indexOf("?") > -1 ? "&" : "?") + qs : "");
+
+      fallback.href = target;
+
+      // ซ่อน loader เมื่อโหลดเสร็จ
+      var done = false;
+      function hideLoader() {
+        if (done) return;
+        done = true;
+        loader.classList.add("hide");
+        setTimeout(function () { loader.style.display = "none"; }, 700);
+      }
+      frame.addEventListener("load", hideLoader);
+
+      // ถ้าโหลดนานเกิน 8 วินาที ให้แสดงปุ่มสำรอง
+      setTimeout(function () { if (!done) fallback.classList.add("show"); }, 8000);
+      // กัน loader ค้างตลอดไป
+      setTimeout(hideLoader, 25000);
+
+      frame.src = target;
+
+      // กัน iOS Safari ขยับหน้าเมื่อ address bar เปลี่ยนขนาด
+      window.addEventListener("resize", function () {
+        document.documentElement.style.height = window.innerHeight + "px";
+      });
+    })();
+  </script>
+
+  <noscript>
+    <p style="position:fixed;inset:0;z-index:20;margin:0;display:flex;align-items:center;justify-content:center;background:#0b2545;color:#fff;text-align:center;padding:24px">
+      กรุณาเปิดใช้งาน JavaScript เพื่อใช้งานระบบประเมินความเหมาะสมในการเป็นทหาร
+    </p>
+  </noscript>
+</body>
+</html>
